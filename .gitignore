@@ -1,11 +1,13 @@
 # The challenge data are not redistributed: keep the CSVs out of the repository.
-data/
-notebook/data/
+# Anchored with a leading slash on purpose: a bare `data/` would also match `pdchallenge/data/`,
+# the package's data-loading code (that mistake shipped a broken v11 tag on 2026-11-07).
+/data/
+/notebook/data/
 *.csv
 
 # What running the notebook writes or downloads.
-notebook/output/
-output/
+/notebook/output/
+/output/
 su-as-2026-pd-*/
 *.partial/
 
@@ -14,3 +16,4 @@ __pycache__/
 .ipynb_checkpoints/
 .venv/
 .DS_Store
+.claude/
