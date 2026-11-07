@@ -1,0 +1,25 @@
+# Conda alternative to requirements.txt, with the same pinned versions:
+#
+#   conda env create -f environment.yml
+#   conda activate su-as-2026-pd
+#
+# The run that wrote our upload used these conda-forge builds plus the PyTorch wheel from pip.
+# On macOS that puts two OpenMP runtimes in one process (conda's llvm-openmp and PyTorch's own);
+# see README.md, "Reproducibility", for the one-line workaround.
+name: su-as-2026-pd
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy=2.5.3
+  - pandas=2.3.3
+  - scipy=1.18.1
+  - scikit-learn=1.9.1
+  - xgboost=3.4.1
+  - lightgbm=4.7.0
+  - matplotlib=3.11.1
+  - pyyaml=6.0.3
+  - jupyterlab
+  - pip
+  - pip:
+      - torch==2.14.1

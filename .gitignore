@@ -1,0 +1,16 @@
+# The challenge data are not redistributed: keep the CSVs out of the repository.
+data/
+notebook/data/
+*.csv
+
+# What running the notebook writes or downloads.
+notebook/output/
+output/
+su-as-2026-pd-*/
+*.partial/
+
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+.DS_Store

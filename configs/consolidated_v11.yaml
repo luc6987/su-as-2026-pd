@@ -1,0 +1,87 @@
+# v11 = v10 (`configs/consolidated_v10.yaml`) verbatim — the same feature chain, the same
+# `tta_scales`, the same five model members and the same blend weights (TTA bag5 0.54 /
+# LN bag5 0.18 / LN GRU 2 layers 0.06 / S_new 0.13 / S_old 0.09), the same R6 pinned-cubic
+# smoothing — plus R7: `continuation: g2` on the pinned-cubic fit. Nothing else differs; the
+# members and weights are unchanged (see v10's header for what they are and why).
+#
+# R7 (00-RULES §6.3, 2026-10-16 package): the generator's target `T` is the G2 continuation of
+# the latent `c` (`R_GEOM` 1.02: when `c` stops rising the next visit is ×1.02, and `T` never
+# falls), while R6 projects the prediction onto `c` itself and therefore rides the fit down
+# through the rising-latent segment. `continuation: g2` runs that rule on the patient's fitted
+# values before the 0.75/0.25 mix: `g_0 = max(x_0, 0)`; for v ≥ 1, `g_v = x_v` if `x_v > g_{v−1}`
+# else `1.02·g_{v−1}`, visited in age order on the same fit R6 uses; output `0.75·g + 0.25·raw`,
+# then `clip_to_valid`. Constants 1.02 (the generator's, not a knob) and w 0.75 (R6's); no other
+# parameter, nothing tuned. Implementation: `pdchallenge/models/smoothed.py`, option
+# `continuation` (`"none"` default, `"g2"`), off ⇒ v7–v10 bit-identical.
+#
+# The deciding reading is `reports/round-2026-10-16/P/03_step.txt` — the round's one and only one
+# pre-registered package read, v11 = v10 + R7 against the v10 OOF: mining (the selection set)
+# Δ −0.0373 [−0.0543, −0.0214] (per-seed −0.0336 / −0.0371 / −0.0413), confirm Δ −0.0355
+# [−0.0649, −0.0084] (per-seed −0.0342 / −0.0401 / −0.0323), all Δ −0.0367 [−0.0514, −0.0223]
+# (per-seed −0.0338 / −0.0381 / −0.0383); MSE all 4.8636 (v10 4.9003), mining 4.8159, confirm
+# 4.9612; 15/15 folds better (all dev and mining); no mining optimism. ×4 multiplicity (§6.11):
+# mining [−0.0590, −0.0168] one-sided p 0.000, confirm [−0.0740, −0.0027] one-sided p 0.003,
+# all [−0.0551, −0.0186] p 0.000 — the **4th** pre-registered package read on these mining
+# patients (k = 4, counting from v9M). The mining read is a **reproduction** of the planner's
+# coarse screen D151 (it is a carried-in component, not fresh evidence); the honest one is the
+# confirm set, R7's 1st read.
+#
+# Whether v11 is adopted is not decided here: see `docs/decisions.csv` D156 and `configs/CURRENT`.
+# The holdout was **not** looked at (protocol §9: the calibrated pass probability of this
+# post-hoc change is 0.135, below 0.5).
+#
+# Needs torch: run it from the `pdnn` environment (`/opt/anaconda3/envs/pdnn`).
+# `explain: false`: SHAP covers neither the set models nor the level-normalised boosters.
+tag: consolidated-v11
+features:
+  - derived
+  - {name: debias, use_patient_ldr: false}
+  - patient_curve
+  - on_ratio
+  - {name: pk_response, prior: aad_krig, knn_pool: fit+transform, dt_slope: false, effect_loading: true, timing: true, timing_tau: 0.4}
+  - {name: patient_aggregates, obs_col: obs_pk}
+  - {name: envelope_curve, value_col: obs_pk, weight_col: obs_pk_weight, tau: 0.95, time_col: age, prior_scale: 0.25}
+  - {name: likelihood, time_col: age, quadratic_min_obs: 6}
+  - {name: neighbour, window: null}
+  - {name: floor, obs_known_dt_only: true}
+  - {name: edge, timing: true}
+tta_scales: [0.9, 0.95, 1.0, 1.05, 1.1]
+model:
+  name: smoothed
+  deg: 2
+  w: 0.75
+  time_col: age
+  family: pinned_cubic
+  continuation: g2
+  base:
+    name: ensemble
+    method: weighted
+    weights: [0.54, 0.18, 0.06, 0.13, 0.09]
+    members:
+      - name: ensemble
+        method: mean
+        members:
+          - {name: gbm, seed: 0, tta: true, params: {n_estimators: 1600, learning_rate: 0.025, max_depth: 8, min_child_weight: 5, subsample: 0.8, colsample_bytree: 0.8}}
+          - {name: gbm, seed: 1, tta: true, params: {n_estimators: 1600, learning_rate: 0.025, max_depth: 8, min_child_weight: 5, subsample: 0.8, colsample_bytree: 0.8}}
+          - {name: gbm, seed: 2, tta: true, params: {n_estimators: 1600, learning_rate: 0.025, max_depth: 8, min_child_weight: 5, subsample: 0.8, colsample_bytree: 0.8}}
+          - {name: gbm, seed: 3, tta: true, params: {n_estimators: 1600, learning_rate: 0.025, max_depth: 8, min_child_weight: 5, subsample: 0.8, colsample_bytree: 0.8}}
+          - {name: gbm, seed: 4, tta: true, params: {n_estimators: 1600, learning_rate: 0.025, max_depth: 8, min_child_weight: 5, subsample: 0.8, colsample_bytree: 0.8}}
+      - name: ensemble
+        method: mean
+        members:
+          - {name: gbm, seed: 0, tta: true, level_norm: true, params: {n_estimators: 1600, learning_rate: 0.025, max_depth: 8, min_child_weight: 5, subsample: 0.8, colsample_bytree: 0.8}}
+          - {name: gbm, seed: 1, tta: true, level_norm: true, params: {n_estimators: 1600, learning_rate: 0.025, max_depth: 8, min_child_weight: 5, subsample: 0.8, colsample_bytree: 0.8}}
+          - {name: gbm, seed: 2, tta: true, level_norm: true, params: {n_estimators: 1600, learning_rate: 0.025, max_depth: 8, min_child_weight: 5, subsample: 0.8, colsample_bytree: 0.8}}
+          - {name: gbm, seed: 3, tta: true, level_norm: true, params: {n_estimators: 1600, learning_rate: 0.025, max_depth: 8, min_child_weight: 5, subsample: 0.8, colsample_bytree: 0.8}}
+          - {name: gbm, seed: 4, tta: true, level_norm: true, params: {n_estimators: 1600, learning_rate: 0.025, max_depth: 8, min_child_weight: 5, subsample: 0.8, colsample_bytree: 0.8}}
+      - {name: visit_gru, seed: 0, reps: 2, layers: 2, epochs: 40, threads: 1, level_norm: true}
+      - {name: visit_gru, seed: 0, reps: 2, layers: 3, epochs: 40, threads: 1, pretrain: mvm, pre_epochs: 60}
+      - name: chain_view
+        view: [floor, edge]
+        base: {name: visit_gru, seed: 0, reps: 2, layers: 3, epochs: 40, threads: 1, pretrain: mvm, pre_epochs: 60}
+n_splits: 5
+cv_seed: 0
+model_seed: 0
+dev_only: false
+explain: false
+write_submission: true

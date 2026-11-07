@@ -1,0 +1,13 @@
+# The exact library versions of the run that wrote our upload (Python 3.12).
+# The notebook installs these itself when they are missing; this file is for setting up by hand.
+# On Linux, install the CPU build of PyTorch first, to avoid several GB of unused CUDA libraries:
+#   pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
+numpy==2.5.3
+pandas==2.3.3
+scipy==1.18.1
+scikit-learn==1.9.1
+xgboost==3.4.1
+lightgbm==4.7.0
+torch==2.14.1
+matplotlib==3.11.1
+PyYAML==6.0.3
